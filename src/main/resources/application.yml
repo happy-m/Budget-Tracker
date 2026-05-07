@@ -1,0 +1,42 @@
+spring:
+  application:
+    name: budget-tracker
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/budget_tracker
+    username: budget
+    password: budget
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: Asia/Seoul
+    open-in-view: false
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
+
+logging:
+  level:
+    com.example.budgettracker: DEBUG
+    org.hibernate.SQL: DEBUG
