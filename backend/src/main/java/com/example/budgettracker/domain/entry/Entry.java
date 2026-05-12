@@ -89,13 +89,13 @@ public class Entry extends BaseTimeEntity {
             Account fromAccount,
             Account toAccount,
             String memo) {
-        if (categoryGroup != null) this.categoryGroup = categoryGroup;
-        if (category != null) this.category = category;
-        if (subcategory != null) this.subcategory = subcategory;
-        if (amount != null) this.amount = amount;
-        if (transactionAt != null) this.transactionAt = transactionAt;
-        if (fromAccount != null) this.fromAccount = fromAccount;
-        if (toAccount != null) this.toAccount = toAccount;
-        if (memo != null) this.memo = memo;
+        this.categoryGroup = categoryGroup;
+        this.category = category;
+        this.subcategory = subcategory;
+        this.amount = amount;
+        this.transactionAt = transactionAt;
+        this.fromAccount = fromAccount;
+        this.toAccount = toAccount;
+        this.memo = memo;
     }
 }

@@ -6,6 +6,7 @@ type Props = {
   entries: Entry[]
   onClose: () => void
   onAddClick: () => void
+  onEditClick: (entry: Entry) => void
 }
 
 function fmt(amount: number): string {
@@ -18,7 +19,13 @@ function formatDateHeader(date: string): string {
   return `${y}년 ${m}월 ${d}일 (${wd})`
 }
 
-export default function EntryList({ date, entries, onClose, onAddClick }: Props) {
+export default function EntryList({
+  date,
+  entries,
+  onClose,
+  onAddClick,
+  onEditClick,
+}: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -29,10 +36,10 @@ export default function EntryList({ date, entries, onClose, onAddClick }: Props)
 
   const incomeSum = entries
     .filter((e) => e.type === 'INCOME')
-    .reduce((s, e) => s + e.amount, 0)
+    .reduce((s, e) => s + Number(e.amount), 0)
   const expenseSum = entries
     .filter((e) => e.type === 'EXPENSE')
-    .reduce((s, e) => s + e.amount, 0)
+    .reduce((s, e) => s + Number(e.amount), 0)
   const total = incomeSum - expenseSum
 
   return (
@@ -69,6 +76,19 @@ export default function EntryList({ date, entries, onClose, onAddClick }: Props)
                       {e.type === 'INCOME' ? '+' : e.type === 'EXPENSE' ? '−' : ''}
                       {fmt(Number(e.amount))}
                     </span>
+                    <button
+                      type="button"
+                      className="entry-edit-btn"
+                      onClick={() => onEditClick(e)}
+                      aria-label="편집"
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" strokeWidth="2"
+                        strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                    </button>
                   </li>
                 ))}
               </ul>

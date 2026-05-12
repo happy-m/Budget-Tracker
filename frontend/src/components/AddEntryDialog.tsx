@@ -2,12 +2,13 @@ import { useEffect, useState } from 'react'
 import { entriesApi } from '../api/entries'
 import { accountsApi } from '../api/accounts'
 import { categoriesApi, subcategoriesApi } from '../api/categories'
-import type { Account, Category, EntryType, Subcategory } from '../types'
+import type { Account, Category, Entry, EntryType, Subcategory } from '../types'
 
 type Props = {
   initialDate: string
+  entry?: Entry
   onClose: () => void
-  onCreated: () => void
+  onSaved: () => void
 }
 
 function defaultDateTime(date: string): string {
@@ -23,15 +24,23 @@ const TYPE_LABEL: Record<EntryType, string> = {
   TRANSFER: '이체',
 }
 
-export default function AddEntryDialog({ initialDate, onClose, onCreated }: Props) {
-  const [type, setType] = useState<EntryType>('EXPENSE')
-  const [amount, setAmount] = useState('')
-  const [transactionAt, setTransactionAt] = useState(defaultDateTime(initialDate))
-  const [categoryId, setCategoryId] = useState<number | null>(null)
-  const [subcategoryId, setSubcategoryId] = useState<number | null>(null)
-  const [fromAccountId, setFromAccountId] = useState<number | null>(null)
-  const [toAccountId, setToAccountId] = useState<number | null>(null)
-  const [memo, setMemo] = useState('')
+export default function AddEntryDialog({ initialDate, entry, onClose, onSaved }: Props) {
+  const isEdit = !!entry
+
+  const [type, setType] = useState<EntryType>(entry?.type ?? 'EXPENSE')
+  const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
+  const [transactionAt, setTransactionAt] = useState(
+    entry ? entry.transactionAt.slice(0, 16) : defaultDateTime(initialDate)
+  )
+  const [categoryId, setCategoryId] = useState<number | null>(entry?.categoryId ?? null)
+  const [subcategoryId, setSubcategoryId] = useState<number | null>(
+    entry?.subcategoryId ?? null
+  )
+  const [fromAccountId, setFromAccountId] = useState<number | null>(
+    entry?.fromAccountId ?? null
+  )
+  const [toAccountId, setToAccountId] = useState<number | null>(entry?.toAccountId ?? null)
+  const [memo, setMemo] = useState(entry?.memo ?? '')
 
   const [accounts, setAccounts] = useState<Account[]>([])
   const [categories, setCategories] = useState<Category[]>([])
@@ -45,8 +54,6 @@ export default function AddEntryDialog({ initialDate, onClose, onCreated }: Prop
   }, [])
 
   useEffect(() => {
-    setCategoryId(null)
-    setSubcategoryId(null)
     if (type === 'TRANSFER') {
       setCategories([])
       return
@@ -55,7 +62,6 @@ export default function AddEntryDialog({ initialDate, onClose, onCreated }: Prop
   }, [type])
 
   useEffect(() => {
-    setSubcategoryId(null)
     if (!categoryId) {
       setSubcategories([])
       return
@@ -71,6 +77,17 @@ export default function AddEntryDialog({ initialDate, onClose, onCreated }: Prop
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  const changeType = (t: EntryType) => {
+    setType(t)
+    setCategoryId(null)
+    setSubcategoryId(null)
+  }
+
+  const changeCategory = (id: number | null) => {
+    setCategoryId(id)
+    setSubcategoryId(null)
+  }
+
   const submit = async () => {
     setError(null)
     const amt = Number(amount)
@@ -78,19 +95,24 @@ export default function AddEntryDialog({ initialDate, onClose, onCreated }: Prop
       setError('금액을 입력하세요')
       return
     }
+    const payload = {
+      type,
+      categoryId: type === 'TRANSFER' ? null : categoryId,
+      subcategoryId: type === 'TRANSFER' ? null : subcategoryId,
+      amount: amt,
+      transactionAt,
+      fromAccountId: type === 'INCOME' ? null : fromAccountId,
+      toAccountId: type === 'EXPENSE' ? null : toAccountId,
+      memo: memo || undefined,
+    }
     setSubmitting(true)
     try {
-      await entriesApi.create({
-        type,
-        categoryId: type === 'TRANSFER' ? null : categoryId,
-        subcategoryId: type === 'TRANSFER' ? null : subcategoryId,
-        amount: amt,
-        transactionAt,
-        fromAccountId: type === 'INCOME' ? null : fromAccountId,
-        toAccountId: type === 'EXPENSE' ? null : toAccountId,
-        memo: memo || undefined,
-      })
-      onCreated()
+      if (isEdit && entry) {
+        await entriesApi.update(entry.id, payload)
+      } else {
+        await entriesApi.create(payload)
+      }
+      onSaved()
       onClose()
     } catch (e) {
       setError(String(e))
@@ -103,7 +125,7 @@ export default function AddEntryDialog({ initialDate, onClose, onCreated }: Prop
     <div className="dialog-overlay" onClick={onClose}>
       <div className="dialog form-dialog" onClick={(e) => e.stopPropagation()}>
         <div className="dialog-header">
-          <h2>기록 추가</h2>
+          <h2>{isEdit ? '기록 편집' : '기록 추가'}</h2>
           <button className="dialog-close" onClick={onClose} aria-label="닫기">
             ×
           </button>
@@ -118,7 +140,7 @@ export default function AddEntryDialog({ initialDate, onClose, onCreated }: Prop
                   key={t}
                   type="button"
                   className={'type-tab' + (type === t ? ' active' : '')}
-                  onClick={() => setType(t)}
+                  onClick={() => changeType(t)}
                 >
                   {TYPE_LABEL[t]}
                 </button>
@@ -191,7 +213,7 @@ export default function AddEntryDialog({ initialDate, onClose, onCreated }: Prop
                 <select
                   value={categoryId ?? ''}
                   onChange={(e) =>
-                    setCategoryId(e.target.value ? Number(e.target.value) : null)
+                    changeCategory(e.target.value ? Number(e.target.value) : null)
                   }
                 >
                   <option value="">선택</option>

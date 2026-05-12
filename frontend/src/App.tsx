@@ -3,6 +3,7 @@ import DayCell from './components/DayCell'
 import EntryList from './components/EntryList'
 import AddEntryDialog from './components/AddEntryDialog'
 import Sidebar, { type View } from './components/Sidebar'
+import SettingsView from './components/SettingsView'
 import { entriesApi } from './api/entries'
 import type { Entry } from './types'
 
@@ -75,7 +76,9 @@ export default function App() {
   const [pickerYear, setPickerYear] = useState(year)
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [formMode, setFormMode] = useState<
+    { type: 'add' } | { type: 'edit'; entry: Entry } | null
+  >(null)
 
   const [allEntries, setAllEntries] = useState<Entry[]>([])
   const [loading, setLoading] = useState(false)
@@ -238,18 +241,22 @@ export default function App() {
                 date={selectedDate}
                 entries={selectedEntries}
                 onClose={() => setSelectedDate(null)}
-                onAddClick={() => setAddDialogOpen(true)}
+                onAddClick={() => setFormMode({ type: 'add' })}
+                onEditClick={(e) => setFormMode({ type: 'edit', entry: e })}
               />
             )}
 
-            {addDialogOpen && selectedDate && (
+            {formMode && selectedDate && (
               <AddEntryDialog
                 initialDate={selectedDate}
-                onClose={() => setAddDialogOpen(false)}
-                onCreated={() => loadEntries()}
+                entry={formMode.type === 'edit' ? formMode.entry : undefined}
+                onClose={() => setFormMode(null)}
+                onSaved={() => loadEntries()}
               />
             )}
           </>
+        ) : view === 'settings' ? (
+          <SettingsView />
         ) : (
           <div className="placeholder">
             <h2>{VIEW_LABEL[view]}</h2>

@@ -29,6 +29,8 @@ export type EntryCreateInput = {
   memo?: string
 }
 
+export type EntryUpdateInput = EntryCreateInput
+
 export type Account = {
   id: number
   accountGroupId: number
@@ -52,4 +54,14 @@ export type Subcategory = {
   categoryName: string
   name: string
   displayOrder: number
+}
+
+export type AccountGroupKind = 'CREDIT_CARD' | 'DEBIT_CARD' | 'GENERAL'
+
+export type AccountGroup = {
+  id: number
+  name: string
+  kind: AccountGroupKind
+  createdAt: string
+  updatedAt: string
 }

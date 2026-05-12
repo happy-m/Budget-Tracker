@@ -31,6 +31,79 @@ public class EntryService {
         return entryRepository.findAll().stream().map(EntryResponse::from).toList();
     }
 
+    public EntryResponse update(Long id, EntryUpdateRequest request) {
+        Entry entry =
+                entryRepository
+                        .findById(id)
+                        .orElseThrow(
+                                () ->
+                                        new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "Entry not found: " + id));
+        CategoryGroup group =
+                categoryGroupRepository
+                        .findByName(request.type())
+                        .orElseThrow(
+                                () ->
+                                        new ResponseStatusException(
+                                                HttpStatus.NOT_FOUND,
+                                                "CategoryGroup not found: " + request.type()));
+        Category category =
+                request.categoryId() != null
+                        ? categoryRepository
+                                .findById(request.categoryId())
+                                .orElseThrow(
+                                        () ->
+                                                new ResponseStatusException(
+                                                        HttpStatus.NOT_FOUND,
+                                                        "Category not found: "
+                                                                + request.categoryId()))
+                        : null;
+        Subcategory subcategory =
+                request.subcategoryId() != null
+                        ? subcategoryRepository
+                                .findById(request.subcategoryId())
+                                .orElseThrow(
+                                        () ->
+                                                new ResponseStatusException(
+                                                        HttpStatus.NOT_FOUND,
+                                                        "Subcategory not found: "
+                                                                + request.subcategoryId()))
+                        : null;
+        Account fromAccount =
+                request.fromAccountId() != null
+                        ? accountRepository
+                                .findById(request.fromAccountId())
+                                .orElseThrow(
+                                        () ->
+                                                new ResponseStatusException(
+                                                        HttpStatus.NOT_FOUND,
+                                                        "Account not found: "
+                                                                + request.fromAccountId()))
+                        : null;
+        Account toAccount =
+                request.toAccountId() != null
+                        ? accountRepository
+                                .findById(request.toAccountId())
+                                .orElseThrow(
+                                        () ->
+                                                new ResponseStatusException(
+                                                        HttpStatus.NOT_FOUND,
+                                                        "Account not found: "
+                                                                + request.toAccountId()))
+                        : null;
+        entry.update(
+                group,
+                category,
+                subcategory,
+                request.amount(),
+                request.transactionAt(),
+                fromAccount,
+                toAccount,
+                request.memo());
+        return EntryResponse.from(entry);
+    }
+
     public EntryResponse create(EntryCreateRequest request) {
         CategoryGroup group =
                 categoryGroupRepository
