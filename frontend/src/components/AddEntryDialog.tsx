@@ -1,8 +1,16 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { entriesApi } from '../api/entries'
 import { accountsApi } from '../api/accounts'
+import { accountGroupsApi } from '../api/accountGroups'
 import { categoriesApi, subcategoriesApi } from '../api/categories'
-import type { Account, Category, Entry, EntryType, Subcategory } from '../types'
+import type {
+  Account,
+  AccountGroup,
+  Category,
+  Entry,
+  EntryType,
+  Subcategory,
+} from '../types'
 
 type Props = {
   initialDate: string
@@ -28,7 +36,9 @@ export default function AddEntryDialog({ initialDate, entry, onClose, onSaved }:
   const isEdit = !!entry
 
   const [type, setType] = useState<EntryType>(entry?.type ?? 'EXPENSE')
-  const [amount, setAmount] = useState(entry ? String(entry.amount) : '')
+  const [amount, setAmount] = useState(
+    entry ? Number(entry.amount).toLocaleString('ko-KR') : ''
+  )
   const [transactionAt, setTransactionAt] = useState(
     entry ? entry.transactionAt.slice(0, 16) : defaultDateTime(initialDate)
   )
@@ -36,13 +46,16 @@ export default function AddEntryDialog({ initialDate, entry, onClose, onSaved }:
   const [subcategoryId, setSubcategoryId] = useState<number | null>(
     entry?.subcategoryId ?? null
   )
+  const [fromGroupId, setFromGroupId] = useState<number | null>(null)
   const [fromAccountId, setFromAccountId] = useState<number | null>(
     entry?.fromAccountId ?? null
   )
+  const [toGroupId, setToGroupId] = useState<number | null>(null)
   const [toAccountId, setToAccountId] = useState<number | null>(entry?.toAccountId ?? null)
   const [memo, setMemo] = useState(entry?.memo ?? '')
 
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [accountGroups, setAccountGroups] = useState<AccountGroup[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [subcategories, setSubcategories] = useState<Subcategory[]>([])
 
@@ -50,7 +63,21 @@ export default function AddEntryDialog({ initialDate, entry, onClose, onSaved }:
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    accountsApi.list().then(setAccounts).catch((e) => setError(String(e)))
+    accountsApi
+      .list()
+      .then((data) => {
+        setAccounts(data)
+        if (entry?.fromAccountId != null) {
+          const a = data.find((x) => x.id === entry.fromAccountId)
+          if (a) setFromGroupId(a.accountGroupId)
+        }
+        if (entry?.toAccountId != null) {
+          const a = data.find((x) => x.id === entry.toAccountId)
+          if (a) setToGroupId(a.accountGroupId)
+        }
+      })
+      .catch((e) => setError(String(e)))
+    accountGroupsApi.list().then(setAccountGroups).catch((e) => setError(String(e)))
   }, [])
 
   useEffect(() => {
@@ -77,6 +104,15 @@ export default function AddEntryDialog({ initialDate, entry, onClose, onSaved }:
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
+  const fromAccountOptions = useMemo(
+    () => accounts.filter((a) => a.accountGroupId === fromGroupId),
+    [accounts, fromGroupId]
+  )
+  const toAccountOptions = useMemo(
+    () => accounts.filter((a) => a.accountGroupId === toGroupId),
+    [accounts, toGroupId]
+  )
+
   const changeType = (t: EntryType) => {
     setType(t)
     setCategoryId(null)
@@ -88,9 +124,18 @@ export default function AddEntryDialog({ initialDate, entry, onClose, onSaved }:
     setSubcategoryId(null)
   }
 
+  const changeFromGroup = (id: number | null) => {
+    setFromGroupId(id)
+    setFromAccountId(null)
+  }
+  const changeToGroup = (id: number | null) => {
+    setToGroupId(id)
+    setToAccountId(null)
+  }
+
   const submit = async () => {
     setError(null)
-    const amt = Number(amount)
+    const amt = Number(amount.replace(/,/g, ''))
     if (!amt || amt <= 0) {
       setError('금액을 입력하세요')
       return
@@ -160,10 +205,13 @@ export default function AddEntryDialog({ initialDate, entry, onClose, onSaved }:
           <div className="form-row">
             <label>금액</label>
             <input
-              type="number"
+              type="text"
               inputMode="numeric"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/[^0-9]/g, '')
+                setAmount(raw ? Number(raw).toLocaleString('ko-KR') : '')
+              }}
               placeholder="0"
             />
           </div>
@@ -171,83 +219,110 @@ export default function AddEntryDialog({ initialDate, entry, onClose, onSaved }:
           {(type === 'EXPENSE' || type === 'TRANSFER') && (
             <div className="form-row">
               <label>{type === 'EXPENSE' ? '자산' : '출금 자산'}</label>
-              <select
-                value={fromAccountId ?? ''}
-                onChange={(e) =>
-                  setFromAccountId(e.target.value ? Number(e.target.value) : null)
-                }
-              >
-                <option value="">선택</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} ({a.accountGroupName})
-                  </option>
-                ))}
-              </select>
+              <div className="cascading-selects">
+                <select
+                  value={fromGroupId ?? ''}
+                  onChange={(e) =>
+                    changeFromGroup(e.target.value ? Number(e.target.value) : null)
+                  }
+                >
+                  <option value="">자산 그룹 선택</option>
+                  {accountGroups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={fromAccountId ?? ''}
+                  onChange={(e) =>
+                    setFromAccountId(e.target.value ? Number(e.target.value) : null)
+                  }
+                  disabled={!fromGroupId || fromAccountOptions.length === 0}
+                >
+                  <option value="">자산 선택</option>
+                  {fromAccountOptions.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
 
           {(type === 'INCOME' || type === 'TRANSFER') && (
             <div className="form-row">
               <label>{type === 'INCOME' ? '자산' : '입금 자산'}</label>
-              <select
-                value={toAccountId ?? ''}
-                onChange={(e) =>
-                  setToAccountId(e.target.value ? Number(e.target.value) : null)
-                }
-              >
-                <option value="">선택</option>
-                {accounts.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.name} ({a.accountGroupName})
-                  </option>
-                ))}
-              </select>
+              <div className="cascading-selects">
+                <select
+                  value={toGroupId ?? ''}
+                  onChange={(e) =>
+                    changeToGroup(e.target.value ? Number(e.target.value) : null)
+                  }
+                >
+                  <option value="">자산 그룹 선택</option>
+                  {accountGroups.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  value={toAccountId ?? ''}
+                  onChange={(e) =>
+                    setToAccountId(e.target.value ? Number(e.target.value) : null)
+                  }
+                  disabled={!toGroupId || toAccountOptions.length === 0}
+                >
+                  <option value="">자산 선택</option>
+                  {toAccountOptions.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
 
           {type !== 'TRANSFER' && (
-            <>
-              <div className="form-row">
-                <label>분류</label>
+            <div className="form-row">
+              <label>분류</label>
+              <div className="cascading-selects">
                 <select
                   value={categoryId ?? ''}
                   onChange={(e) =>
                     changeCategory(e.target.value ? Number(e.target.value) : null)
                   }
                 >
-                  <option value="">선택</option>
+                  <option value="">분류 선택</option>
                   {categories.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
                   ))}
                 </select>
+                <select
+                  value={subcategoryId ?? ''}
+                  onChange={(e) =>
+                    setSubcategoryId(e.target.value ? Number(e.target.value) : null)
+                  }
+                  disabled={!categoryId || subcategories.length === 0}
+                >
+                  <option value="">소분류</option>
+                  {subcategories.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
               </div>
-
-              {categoryId && subcategories.length > 0 && (
-                <div className="form-row">
-                  <label>소분류 (선택)</label>
-                  <select
-                    value={subcategoryId ?? ''}
-                    onChange={(e) =>
-                      setSubcategoryId(e.target.value ? Number(e.target.value) : null)
-                    }
-                  >
-                    <option value="">선택 안 함</option>
-                    {subcategories.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-            </>
+            </div>
           )}
 
           <div className="form-row">
-            <label>메모 (선택)</label>
+            <label>메모</label>
             <input
               type="text"
               value={memo}
