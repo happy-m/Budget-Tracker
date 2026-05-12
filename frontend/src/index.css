@@ -425,6 +425,12 @@ body {
   min-width: 0;
 }
 
+.inline-edit-balance {
+  flex: 0 0 120px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
 .icon-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;

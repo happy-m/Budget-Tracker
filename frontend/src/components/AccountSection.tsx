@@ -23,6 +23,7 @@ export default function AccountSection() {
   const [editingGroupName, setEditingGroupName] = useState('')
   const [editingAccountId, setEditingAccountId] = useState<number | null>(null)
   const [editingAccountName, setEditingAccountName] = useState('')
+  const [editingAccountBalance, setEditingAccountBalance] = useState('')
 
   const load = async () => {
     const [grps, allAccounts] = await Promise.all([
@@ -86,15 +87,24 @@ export default function AccountSection() {
   const startEditAccount = (a: Account) => {
     setEditingAccountId(a.id)
     setEditingAccountName(a.name)
+    setEditingAccountBalance(String(a.balance))
   }
   const submitEditAccount = async () => {
     if (editingAccountId == null) return
     const all = Object.values(accountsByGroup).flat()
     const original = all.find((a) => a.id === editingAccountId)
     const name = editingAccountName.trim()
+    const balanceNum = Number(editingAccountBalance)
     setEditingAccountId(null)
-    if (!original || !name || name === original.name) return
-    await accountsApi.update(editingAccountId, { name })
+    if (!original || !name) return
+    const nameChanged = name !== original.name
+    const balanceChanged =
+      !Number.isNaN(balanceNum) && balanceNum !== Number(original.balance)
+    if (!nameChanged && !balanceChanged) return
+    await accountsApi.update(editingAccountId, {
+      ...(nameChanged ? { name } : {}),
+      ...(balanceChanged ? { balance: balanceNum } : {}),
+    })
     await load()
   }
   const cancelEditAccount = () => setEditingAccountId(null)
@@ -159,34 +169,61 @@ export default function AccountSection() {
             {accountsByGroup[g.id]?.map((a) => (
               <div key={a.id} className="settings-child-row">
                 {editingAccountId === a.id ? (
-                  <input
-                    type="text"
-                    className="inline-edit-input"
-                    value={editingAccountName}
-                    onChange={(e) => setEditingAccountName(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') submitEditAccount()
-                      else if (e.key === 'Escape') cancelEditAccount()
-                    }}
-                    onBlur={submitEditAccount}
-                    autoFocus
-                    maxLength={50}
-                  />
+                  <>
+                    <input
+                      type="text"
+                      className="inline-edit-input"
+                      value={editingAccountName}
+                      onChange={(e) => setEditingAccountName(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') submitEditAccount()
+                        else if (e.key === 'Escape') cancelEditAccount()
+                      }}
+                      autoFocus
+                      maxLength={50}
+                    />
+                    <input
+                      type="number"
+                      className="inline-edit-input inline-edit-balance"
+                      value={editingAccountBalance}
+                      onChange={(e) => setEditingAccountBalance(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') submitEditAccount()
+                        else if (e.key === 'Escape') cancelEditAccount()
+                      }}
+                    />
+                    <button
+                      className="icon-btn"
+                      onClick={submitEditAccount}
+                      aria-label="저장"
+                    >
+                      ✓
+                    </button>
+                    <button
+                      className="icon-btn"
+                      onClick={cancelEditAccount}
+                      aria-label="취소"
+                    >
+                      ✕
+                    </button>
+                  </>
                 ) : (
-                  <span className="settings-child-name">{a.name}</span>
+                  <>
+                    <span className="settings-child-name">{a.name}</span>
+                    <span className="settings-child-balance">
+                      {Number(a.balance).toLocaleString('ko-KR')}원
+                    </span>
+                    <button className="icon-btn" onClick={() => startEditAccount(a)}>
+                      편집
+                    </button>
+                    <button
+                      className="icon-btn icon-btn-danger"
+                      onClick={() => deleteAccount(a)}
+                    >
+                      ×
+                    </button>
+                  </>
                 )}
-                <span className="settings-child-balance">
-                  {Number(a.balance).toLocaleString('ko-KR')}원
-                </span>
-                <button className="icon-btn" onClick={() => startEditAccount(a)}>
-                  편집
-                </button>
-                <button
-                  className="icon-btn icon-btn-danger"
-                  onClick={() => deleteAccount(a)}
-                >
-                  ×
-                </button>
               </div>
             ))}
             <div className="settings-add-form settings-add-child">
