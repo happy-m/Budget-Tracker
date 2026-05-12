@@ -1,4 +1,4 @@
-package com.example.budgettracker.domain.category;
+package com.example.budgettracker.domain.account;
 
 import com.example.budgettracker.common.BaseTimeEntity;
 import jakarta.persistence.Column;
@@ -16,28 +16,24 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-@Table(name = "categories")
+@Table(name = "account_groups")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Category extends BaseTimeEntity {
+public class AccountGroup extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 30)
+    @Column(nullable = false, length = 30, unique = true)
     private String name;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private CategoryType type;
-
-    @Column(length = 7)
-    private String color;
+    private AccountGroupKind kind;
 
     @Builder
-    public Category(String name, CategoryType type, String color) {
+    public AccountGroup(String name, AccountGroupKind kind) {
         this.name = name;
-        this.type = type;
-        this.color = color;
+        this.kind = kind;
     }
 }
