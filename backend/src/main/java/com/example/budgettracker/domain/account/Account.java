@@ -3,8 +3,6 @@ package com.example.budgettracker.domain.account;
 import com.example.budgettracker.common.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -35,32 +33,39 @@ public class Account extends BaseTimeEntity {
     @Column(nullable = false, length = 50)
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private AccountOwnership ownership;
-
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal balance;
 
-    @Column(nullable = false, length = 3)
-    private String currency;
-
     @Column(nullable = false)
     private boolean excludeFromStats;
+
+    @Column(nullable = false)
+    private boolean hidden;
 
     @Builder
     public Account(
             AccountGroup accountGroup,
             String name,
-            AccountOwnership ownership,
             BigDecimal balance,
-            String currency,
-            boolean excludeFromStats) {
+            boolean excludeFromStats,
+            boolean hidden) {
         this.accountGroup = accountGroup;
         this.name = name;
-        this.ownership = ownership;
         this.balance = balance != null ? balance : BigDecimal.ZERO;
-        this.currency = currency != null ? currency : "KRW";
         this.excludeFromStats = excludeFromStats;
+        this.hidden = hidden;
+    }
+
+    public void update(
+            AccountGroup accountGroup,
+            String name,
+            BigDecimal balance,
+            Boolean excludeFromStats,
+            Boolean hidden) {
+        if (accountGroup != null) this.accountGroup = accountGroup;
+        if (name != null) this.name = name;
+        if (balance != null) this.balance = balance;
+        if (excludeFromStats != null) this.excludeFromStats = excludeFromStats;
+        if (hidden != null) this.hidden = hidden;
     }
 }

@@ -36,4 +36,9 @@ public class AccountGroup extends BaseTimeEntity {
         this.name = name;
         this.kind = kind;
     }
+
+    public void update(String name, AccountGroupKind kind) {
+        this.name = name;
+        this.kind = kind;
+    }
 }
