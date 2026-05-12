@@ -1,34 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import DayCell from './components/DayCell'
 import EntryList from './components/EntryList'
+import AddEntryDialog from './components/AddEntryDialog'
 import Sidebar, { type View } from './components/Sidebar'
+import { entriesApi } from './api/entries'
 import type { Entry } from './types'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
-
-function buildDummyEntries(year: number, month: number): Record<string, Entry[]> {
-  const mm = String(month + 1).padStart(2, '0')
-  return {
-    [`${year}-${mm}-05`]: [
-      { type: 'EXPENSE', amount: 15000, category: '식비', subcategory: '점심', memo: '김치찌개' },
-    ],
-    [`${year}-${mm}-12`]: [
-      { type: 'INCOME', amount: 100000, category: '용돈', memo: '엄마' },
-      { type: 'EXPENSE', amount: 50000, category: '식비', subcategory: '저녁', memo: '회식' },
-    ],
-    [`${year}-${mm}-15`]: [
-      { type: 'INCOME', amount: 3000000, category: '월급', subcategory: '본업', memo: `${month + 1}월분` },
-    ],
-    [`${year}-${mm}-20`]: [
-      { type: 'EXPENSE', amount: 50000, category: '주거비', subcategory: '관리비' },
-      { type: 'EXPENSE', amount: 30000, category: '교통비', subcategory: '주유' },
-    ],
-    [`${year}-${mm}-25`]: [
-      { type: 'INCOME', amount: 50000, category: '부수입' },
-      { type: 'EXPENSE', amount: 120000, category: '쇼핑', memo: '신발' },
-    ],
-  }
-}
 
 type Cell = {
   year: number
@@ -97,9 +75,34 @@ export default function App() {
   const [pickerYear, setPickerYear] = useState(year)
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
+
+  const [allEntries, setAllEntries] = useState<Entry[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const loadEntries = () => {
+    setLoading(true)
+    setError(null)
+    entriesApi
+      .list()
+      .then(setAllEntries)
+      .catch((e) => setError(String(e)))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    loadEntries()
+  }, [])
+
+  const entriesByDate: Record<string, Entry[]> = {}
+  for (const e of allEntries) {
+    const date = e.transactionAt.slice(0, 10)
+    if (!entriesByDate[date]) entriesByDate[date] = []
+    entriesByDate[date].push(e)
+  }
 
   const cells = buildCells(year, month)
-  const entriesByDate = buildDummyEntries(year, month)
 
   const prevMonth = () => {
     setSelectedDate(null)
@@ -189,6 +192,9 @@ export default function App() {
               </button>
             </header>
 
+            {error && <div className="form-error">{error}</div>}
+            {loading && <div className="entry-list-empty">불러오는 중...</div>}
+
             <div className="weekdays">
               {WEEKDAYS.map((w, i) => (
                 <div key={w} className={`weekday wd-${i}`}>
@@ -203,10 +209,10 @@ export default function App() {
                 const dayEntries = entriesByDate[key] ?? []
                 const income = dayEntries
                   .filter((e) => e.type === 'INCOME')
-                  .reduce((s, e) => s + e.amount, 0)
+                  .reduce((s, e) => s + Number(e.amount), 0)
                 const expense = dayEntries
                   .filter((e) => e.type === 'EXPENSE')
-                  .reduce((s, e) => s + e.amount, 0)
+                  .reduce((s, e) => s + Number(e.amount), 0)
                 const isToday =
                   c.year === today.getFullYear() &&
                   c.month === today.getMonth() &&
@@ -232,6 +238,15 @@ export default function App() {
                 date={selectedDate}
                 entries={selectedEntries}
                 onClose={() => setSelectedDate(null)}
+                onAddClick={() => setAddDialogOpen(true)}
+              />
+            )}
+
+            {addDialogOpen && selectedDate && (
+              <AddEntryDialog
+                initialDate={selectedDate}
+                onClose={() => setAddDialogOpen(false)}
+                onCreated={() => loadEntries()}
               />
             )}
           </>

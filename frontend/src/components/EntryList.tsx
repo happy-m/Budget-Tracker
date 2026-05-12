@@ -5,6 +5,7 @@ type Props = {
   date: string
   entries: Entry[]
   onClose: () => void
+  onAddClick: () => void
 }
 
 function fmt(amount: number): string {
@@ -17,7 +18,7 @@ function formatDateHeader(date: string): string {
   return `${y}년 ${m}월 ${d}일 (${wd})`
 }
 
-export default function EntryList({ date, entries, onClose }: Props) {
+export default function EntryList({ date, entries, onClose, onAddClick }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose()
@@ -55,18 +56,18 @@ export default function EntryList({ date, entries, onClose }: Props) {
           ) : (
             <>
               <ul className="entry-items">
-                {entries.map((e, i) => (
-                  <li key={i} className={`entry entry-${e.type.toLowerCase()}`}>
+                {entries.map((e) => (
+                  <li key={e.id} className={`entry entry-${e.type.toLowerCase()}`}>
                     <div className="entry-left">
                       <span className="entry-cat">
-                        {e.category}
-                        {e.subcategory ? ` · ${e.subcategory}` : ''}
+                        {e.categoryName ?? (e.type === 'TRANSFER' ? '이체' : '')}
+                        {e.subcategoryName ? ` · ${e.subcategoryName}` : ''}
                       </span>
                       {e.memo && <span className="entry-memo">{e.memo}</span>}
                     </div>
                     <span className="entry-amount">
                       {e.type === 'INCOME' ? '+' : e.type === 'EXPENSE' ? '−' : ''}
-                      {fmt(e.amount)}
+                      {fmt(Number(e.amount))}
                     </span>
                   </li>
                 ))}
@@ -102,7 +103,7 @@ export default function EntryList({ date, entries, onClose }: Props) {
             type="button"
             className="fab fab-add"
             aria-label="기록 추가"
-            onClick={() => alert('기록 추가 - 준비 중')}
+            onClick={onAddClick}
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
               strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
