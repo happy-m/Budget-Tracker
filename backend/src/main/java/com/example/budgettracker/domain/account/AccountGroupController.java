@@ -1,5 +1,6 @@
 package com.example.budgettracker.domain.account;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import java.net.URI;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/account-groups")
 @RequiredArgsConstructor
+@Tag(name = "AccountGroup")
 public class AccountGroupController {
 
     private final AccountGroupService accountGroupService;

@@ -1,4 +1,4 @@
-package com.example.budgettracker.domain.account;
+package com.example.budgettracker.domain.category;
 
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -13,37 +13,39 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/accounts")
+@RequestMapping("/categories")
 @RequiredArgsConstructor
-@Tag(name = "Account")
-public class AccountController {
+@Tag(name = "Category")
+public class CategoryController {
 
-    private final AccountService accountService;
+    private final CategoryService categoryService;
 
     @GetMapping
-    public ResponseEntity<List<AccountResponse>> findAll() {
-        return ResponseEntity.ok(accountService.findAll());
+    public ResponseEntity<List<CategoryResponse>> findAllByType(
+            @RequestParam CategoryGroupKind type) {
+        return ResponseEntity.ok(categoryService.findAllByType(type));
     }
 
     @PostMapping
-    public ResponseEntity<AccountResponse> create(
-            @Valid @RequestBody AccountCreateRequest request) {
-        AccountResponse response = accountService.create(request);
-        return ResponseEntity.created(URI.create("/accounts/" + response.id())).body(response);
+    public ResponseEntity<CategoryResponse> create(
+            @Valid @RequestBody CategoryCreateRequest request) {
+        CategoryResponse response = categoryService.create(request);
+        return ResponseEntity.created(URI.create("/categories/" + response.id())).body(response);
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<AccountResponse> update(
-            @PathVariable Long id, @Valid @RequestBody AccountUpdateRequest request) {
-        return ResponseEntity.ok(accountService.update(id, request));
+    public ResponseEntity<CategoryResponse> update(
+            @PathVariable Long id, @Valid @RequestBody CategoryUpdateRequest request) {
+        return ResponseEntity.ok(categoryService.update(id, request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable Long id) {
-        accountService.delete(id);
+        categoryService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }
