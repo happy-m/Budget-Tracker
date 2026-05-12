@@ -1,0 +1,20 @@
+:root {
+  --bg: #ffffff;
+  --bg-muted: #fafafa;
+  --text: #1a1a1a;
+  --text-muted: #9ca3af;
+  --border: #ececec;
+
+  --income: #2563eb;
+  --expense: #ef4444;
+  --total: #1a1a1a;
+
+  --weekday-sun: #ef4444;
+  --weekday-sat: #2563eb;
+
+  --today-pink-strong: #ffb6c1;
+  --today-pink-soft: #ffe4ec;
+  --today-pink-deep: #db2777;
+
+  --primary: #ffb6c1;
+}
